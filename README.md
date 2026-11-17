@@ -1,0 +1,1 @@
+# geo-analyzer-mcp
