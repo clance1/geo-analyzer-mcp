@@ -372,7 +372,7 @@ All settings are environment variables (also read from `./.env` and `~/.geo-mcp/
 
 ## Security
 
-- **HTTP auth**: constant-time bearer-token check on every route except `/healthz`. Generate a token with `python -c "import secrets; print(secrets.token_urlsafe(32))"`.
+- **HTTP auth**: constant-time bearer-token check on every route except `/healthz`. Generate a token with `python -c "import secrets; print(secrets.token_urlsafe(32))"`. A report link may carry the token as `?token=…` so it opens in a plain browser; the token is dropped from the request as soon as it has been read, so it is never written to the access log.
 - **SSRF guard**: page audits refuse private, loopback, link-local, CGNAT (RFC 6598) and cloud-metadata addresses on every request *and every redirect hop*. The hostname is resolved **again at connect time** and the socket is opened to that validated address only — so a name that answers with a public IP during the check and a private IP at connect time (DNS rebinding) still cannot reach an internal host. Only the socket target changes: the URL, the `Host` header, TLS SNI and certificate verification stay on the hostname.
 - **Report rendering**: the HTML report is built from untrusted text (audited URLs, engine answers, model briefs, finding snippets). Those values are tag-stripped and escaped where they are interpolated, the generated HTML is then sanitised with `nh3` against an allowlist of the report's own tags, and the page is served with `Content-Security-Policy: default-src 'none'` — no script can run in a report, and the JSON-LD fix snippet stays copy-pasteable as text.
 - **DNS-rebinding protection** is on for localhost binds and for any host listed in `GEO_MCP_ALLOWED_HOSTS`.
