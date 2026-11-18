@@ -1,5 +1,9 @@
 .env
 *.env.local
+# Any other env variant (.env.production, .env.staging, foo.env.local, …) is
+# ignored too; the tracked template stays tracked via the negation below.
+*.env.*
+!.env.example
 __pycache__/
 *.pyc
 .venv/

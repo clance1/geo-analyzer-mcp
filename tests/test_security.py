@@ -6,6 +6,7 @@ range · F-05 unvalidated run id · F-06 forwarded headers · F-07 bots filter.
 
 from __future__ import annotations
 
+import asyncio
 import html as html_mod
 from typing import Any, cast
 
@@ -225,3 +226,88 @@ async def test_page_audit_warns_on_an_unknown_crawler(site_url):
     bad = await run_page_audit([site_url], allow_private=True, timeout=5, bots=["NoSuchBot"])
     assert any("NoSuchBot" in w for w in bad["warnings"])
     assert bad["pages"][0]["bots"], "an unknown crawler name must not produce an empty audit"
+
+
+# ── F-08: the bearer token never reaches the access log ─────────────────────
+
+
+def test_token_query_param_is_stripped_from_the_scope():
+    from geo_mcp.auth import _strip_token_param
+
+    scope = {"query_string": b"token=SECRET&format=md"}
+    _strip_token_param(scope)
+    assert scope["query_string"] == b"format=md"
+
+
+def test_token_query_param_is_stripped_without_touching_other_params():
+    from geo_mcp.auth import _strip_token_param
+
+    scope = {"query_string": b"format=md&token=SECRET&x=1"}
+    _strip_token_param(scope)
+    assert scope["query_string"] == b"format=md&x=1"
+
+
+def test_strip_is_a_no_op_when_there_is_no_token():
+    from geo_mcp.auth import _strip_token_param
+
+    scope = {"query_string": b"format=md"}
+    _strip_token_param(scope)
+    assert scope["query_string"] == b"format=md"
+
+
+def test_a_token_url_still_authenticates(settings, tmp_path):
+    """Stripping the token must not break the browser-link form."""
+    from geo_mcp.cli import create_http_app
+    from geo_mcp.service import GeoService
+
+    token = "t" * 40
+    svc = GeoService(settings.model_copy(update={"auth_token": token}))
+    app = create_http_app(svc, host="127.0.0.1")
+    with TestClient(app) as tc:
+        # No token -> 401
+        assert tc.get("/reports/20240101-000000-abc123").status_code == 401
+        # Correct token in the query string -> authenticated (404: no such run,
+        # but NOT 401 — the token was accepted).
+        resp = tc.get(f"/reports/20240101-000000-abc123?token={token}")
+        assert resp.status_code == 404, resp.text
+
+
+def test_the_access_log_line_does_not_contain_the_token(settings):
+    """The scope uvicorn's access logger renders must not carry the token.
+
+    Uvicorn logs ``get_path_with_query_string(scope)`` — the scope dict the ASGI
+    app was called with — so scrubbing the token from that dict is what keeps
+    it out of the log. This asserts both halves: the scrub happens, and the
+    string uvicorn would log carries no token.
+    """
+    from uvicorn.protocols.utils import get_path_with_query_string
+
+    from geo_mcp.auth import BearerAuth
+
+    token = "t" * 40
+    seen: list[dict] = []
+
+    async def downstream(scope, receive, send):
+        seen.append(scope)
+
+    async def receive():
+        return {"type": "http.request", "body": b"", "more_body": False}
+
+    async def send(message):
+        return None
+
+    scope = {
+        "type": "http",
+        "method": "GET",
+        "path": "/reports/20240101-000000-abc123",
+        "query_string": f"token={token}&format=md".encode(),
+        "headers": [],
+    }
+    app = BearerAuth(downstream, token)
+    asyncio.run(app(scope, receive, send))
+
+    assert seen, "the downstream app was never reached"
+    logged = get_path_with_query_string(cast(Any, seen[0]))
+    assert token not in logged, logged
+    assert "format=md" in logged, logged
+    assert "token=" not in logged, logged
