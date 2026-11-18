@@ -1,0 +1,37 @@
+# Copy to .github/workflows/geo-weekly.yml in a (private) repo that holds your projects.yaml.
+# Secrets: ANTHROPIC_API_KEY, OPENAI_API_KEY, GOOGLE_API_KEY (any subset), optional GEO_WEBHOOK_URL.
+name: GEO weekly analysis
+on:
+  schedule: [{ cron: "0 14 * * 1" }]   # Mondays 14:00 UTC
+  workflow_dispatch:
+    inputs:
+      kind: { description: "page-audit | ai-visibility | sentiment | full-analysis", default: full-analysis }
+
+jobs:
+  geo:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
+      GEO_WEBHOOK_URL: ${{ secrets.GEO_WEBHOOK_URL }}
+      GEO_MCP_PROJECTS: config/projects.yaml
+      GEO_MCP_DATA_DIR: ${{ github.workspace }}/.geo-data
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      # Keep run history between workflow runs so deltas/trends work.
+      - uses: actions/cache@v4
+        with:
+          path: .geo-data
+          key: geo-data-${{ github.run_id }}
+          restore-keys: geo-data-
+      - run: pip install "git+https://github.com/clance1/geo-analyzer-mcp"
+      - run: geo-mcp doctor
+      - name: Run analysis
+        run: geo-mcp run ${{ inputs.kind || 'full-analysis' }} -p local-construction -q --out reports --fail-on-alert
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: { name: geo-report, path: reports/ }

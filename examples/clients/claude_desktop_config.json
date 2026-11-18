@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "geo": {
+      "command": "geo-mcp",
+      "args": ["serve"]
+    }
+  }
+}

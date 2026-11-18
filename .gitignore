@@ -1,0 +1,20 @@
+.env
+*.env.local
+__pycache__/
+*.pyc
+.venv/
+venv/
+dist/
+build/
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+data/
+reports/
+
+# ── local dev artifacts ─────────────────────────────────────────────────────
+.coverage
+htmlcov/
+.mypy_cache/
+*.log
+.DS_Store

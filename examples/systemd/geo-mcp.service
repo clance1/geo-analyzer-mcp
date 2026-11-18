@@ -1,0 +1,17 @@
+# /etc/systemd/system/geo-mcp.service — long-running HTTP server
+[Unit]
+Description=GEO Analyzer MCP server
+After=network-online.target
+
+[Service]
+User=geo
+WorkingDirectory=/opt/geo-mcp
+EnvironmentFile=/opt/geo-mcp/.env
+ExecStart=/opt/geo-mcp/.venv/bin/geo-mcp serve --transport http
+Restart=on-failure
+NoNewPrivileges=true
+ProtectSystem=strict
+ReadWritePaths=/home/geo/.geo-mcp
+
+[Install]
+WantedBy=multi-user.target

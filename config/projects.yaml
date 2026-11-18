@@ -1,0 +1,50 @@
+# ── EXAMPLE project presets ────────────────────────────────────────────────
+# This file is an EXAMPLE to copy and edit — never edit it in place inside a checkout.
+#   • Plugin / local runtime: copy it to ~/.geo-mcp/projects.yaml, or run `geo-mcp init`,
+#     which writes the same template there.
+#   • Docker: the image and compose file mount this exact path (config/projects.yaml).
+# No secrets belong here — API keys live in ~/.geo-mcp/.env.
+#
+# Project presets. One entry per company you track.
+# Every field except company + website is optional. See README → "Project presets".
+projects:
+  local-construction:
+    company: Local Construction Co.
+    website: https://www.localconstruction.example.com
+    aliases: ["Local Construction"]
+    industry: Home construction and remodeling
+    location: Springfield
+    audience: Homeowners and businesses in Springfield looking to build or remodel
+    core_services:
+      - General contracting
+      - Kitchen remodeling
+      - Bathroom remodeling
+    differentiators: []          # e.g. "fixed-price contracts", "in-house permitting"
+    accolades: []                # awards the company has won
+    # Ground truth used to flag inaccurate AI claims. Add pricing ranges, service area, founding year, licenses...
+    facts:
+      - Local Construction Co. provides general contracting, kitchen remodeling and bathroom remodeling services.
+      - Service area is Springfield.
+    competitors:
+      - name: Example Builders Inc.
+        website: https://www.example-builders.example.com
+      - name: Another Contractor Co.
+        website: https://www.another-contractor.example.com
+    # Terms that must NOT count as a brand mention on their own.
+    generic_terms: ["construction company", "general contractor", "home remodeling"]
+    queries:
+      - query: Best general contractor Springfield
+        intent: local
+      - query: Kitchen remodeling contractor Springfield
+        intent: comparison
+      - query: Home remodeling company pricing
+        intent: pricing
+    variants_per_query: 2
+    pages: []                     # extra URLs to include in page audits
+    engines: [claude, chatgpt, gemini]
+    alerts:
+      visibility_drop_pts: 10
+      citation_drop_pts: 10
+      sentiment_drop_pts: 15
+      page_score_drop_pts: 10
+      min_ai_bots_allowed: 6

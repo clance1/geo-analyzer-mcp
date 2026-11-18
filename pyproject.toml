@@ -1,0 +1,69 @@
+[build-system]
+# 1.27.0 is the first hatchling release that writes PEP 639 metadata
+# (`License-Expression` + `License-File`). 1.26.x builds but silently drops
+# them (Metadata-Version 2.3); 1.25.x fails outright on `license-files`.
+requires = ["hatchling>=1.27"]
+build-backend = "hatchling.build"
+
+[project]
+name = "geo-analyzer-mcp"
+version = "0.1.0"
+description = "Self-hosted MCP server for Generative Engine Optimization: AI crawlability audits, multi-engine AI visibility and citation tracking, brand sentiment, and full GEO reports."
+readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
+requires-python = ">=3.11"
+authors = [{ name = "Carson Lance" }]
+keywords = ["mcp", "geo", "generative-engine-optimization", "seo", "ai-visibility", "llm"]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Intended Audience :: Developers",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Topic :: Internet :: WWW/HTTP :: Indexing/Search",
+]
+dependencies = [
+  "mcp>=2.3,<3",
+  "httpx>=0.27",
+  "beautifulsoup4>=4.12",
+  "lxml>=5.0",
+  "pydantic>=2.7",
+  "pyyaml>=6.0",
+  "python-dotenv>=1.0",
+  "uvicorn>=0.30",
+  "starlette>=0.40",
+  "markdown>=3.6",
+  "nh3>=0.3.0",
+  "anthropic>=0.60",
+  "openai>=1.99",
+  "google-genai>=1.30",
+]
+
+[project.optional-dependencies]
+render = ["playwright>=1.45"]
+dev = ["pytest>=8", "pytest-asyncio>=0.24", "respx>=0.21", "ruff>=0.6"]
+
+[project.scripts]
+geo-mcp = "geo_mcp.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/clance1/geo-analyzer-mcp"
+Issues = "https://github.com/clance1/geo-analyzer-mcp/issues"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/geo_mcp"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 110
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP"]
+ignore = ["E501"]

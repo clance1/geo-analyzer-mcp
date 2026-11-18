@@ -1,0 +1,11 @@
+# Build constraints for release builds.
+#
+# hatchling 1.30.0 was yanked from PyPI because it bumped the default core
+# metadata version to 2.5, which the PyPI upload path did not accept yet.
+# 1.31.0 emits Metadata-Version 2.4 while still writing the PEP 639 fields
+# (License-Expression + License-File), so it is the safest release-build pin.
+#
+# This file constrains the *build* environment only. The floor in
+# pyproject.toml (hatchling>=1.27) stays permissive so that anyone building
+# from source with their own tooling is not forced onto this version.
+hatchling==1.31.0

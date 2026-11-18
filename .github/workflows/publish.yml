@@ -1,0 +1,105 @@
+name: Publish
+
+# Publish to PyPI via Trusted Publishing (OIDC).
+#
+# No API token is stored anywhere: the job mints a short-lived credential from
+# GitHub's OIDC identity provider, and PyPI exchanges it for a scoped upload
+# token. The PyPI side must have a Trusted Publisher registered for
+#   Owner: clance1 | Repository: geo-analyzer-mcp | Workflow: publish.yml
+#   Environment: pypi
+#
+# The job is gated on a published GitHub Release. A plain push, a pull request,
+# or a manual dispatch cannot publish — a release is an explicit human act.
+#
+# Actions are pinned to commit SHAs (the tag is in a comment) so a moved or
+# compromised tag cannot change what runs here.
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  build:
+    name: Build distributions
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: "3.11"
+
+      - name: Install build tooling
+        run: python -m pip install --upgrade build
+
+      - name: Build sdist and wheel
+        # PIP_CONSTRAINT pins the build backend to a version that emits
+        # Metadata-Version 2.4. Newer hatchling releases emit 2.5, which the
+        # PyPI upload path does not accept yet (hatchling 1.30.0 was yanked
+        # for exactly this reason). See .github/build-constraints.txt.
+        env:
+          PIP_CONSTRAINT: .github/build-constraints.txt
+        run: python -m build
+
+      - name: Verify the tag version matches pyproject.toml
+        env:
+          TAG_VERSION: ${{ github.event.release.tag_name }}
+        run: |
+          set -euo pipefail
+          tag="${TAG_VERSION#v}"
+          pkg="$(python -c 'import tomllib,pathlib;print(tomllib.loads(pathlib.Path("pyproject.toml").read_text())["project"]["version"])')"
+          echo "tag=$tag pkg=$pkg"
+          if [ "$tag" != "$pkg" ]; then
+            echo "::error::Release tag $tag does not match pyproject version $pkg"
+            exit 1
+          fi
+
+      - name: Verify the distributions
+        run: |
+          set -euo pipefail
+          python -m pip install --upgrade twine
+          twine check dist/*
+          python - <<'PY'
+          import glob, zipfile
+          for whl in glob.glob("dist/*.whl"):
+              with zipfile.ZipFile(whl) as z:
+                  meta = z.read([n for n in z.namelist() if n.endswith("METADATA")][0]).decode()
+              mv = next(l for l in meta.splitlines() if l.startswith("Metadata-Version"))
+              print(f"{whl}: {mv}")
+              assert mv == "Metadata-Version: 2.4", f"unexpected {mv} — PyPI would reject it"
+          PY
+
+      - name: Show built artifacts
+        run: ls -la dist/
+
+      - name: Upload distributions
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: dist
+          path: dist/
+
+  pypi-publish:
+    name: Publish to PyPI
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/project/geo-analyzer-mcp
+    permissions:
+      # Mandatory for Trusted Publishing — GitHub refuses to mint an OIDC
+      # token without it. Job-level (not workflow-level) so no other job
+      # receives the elevated GITHUB_TOKEN.
+      id-token: write
+    steps:
+      - name: Download distributions
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: dist
+          path: dist/
+
+      - name: Publish package distributions to PyPI
+        uses: pypa/gh-action-pypi-publish@7245906fb61fa33a13554f9d5fb856fe61758086 # release/v1 (v1.14.3)

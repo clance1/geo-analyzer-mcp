@@ -1,0 +1,11 @@
+# systemctl enable --now geo-weekly.timer
+[Unit]
+Description=Run GEO full analysis every Monday
+
+[Timer]
+OnCalendar=Mon *-*-* 07:00:00
+Persistent=true
+RandomizedDelaySec=10m
+
+[Install]
+WantedBy=timers.target

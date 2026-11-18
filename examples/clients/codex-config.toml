@@ -1,0 +1,11 @@
+# ~/.codex/config.toml
+[mcp_servers.geo]
+command = "geo-mcp"
+args = ["serve"]
+tool_timeout_sec = 120
+
+# Remote alternative:
+# [mcp_servers.geo]
+# url = "https://geo-mcp.example.com/mcp"
+# bearer_token_env_var = "GEO_MCP_TOKEN"
+# tool_timeout_sec = 120

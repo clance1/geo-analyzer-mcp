@@ -1,0 +1,17 @@
+# GEO Analyzer schedules (crontab -e). Times are server-local.
+# Ensure PATH includes geo-mcp, or use the absolute path from `which geo-mcp`.
+GEO_MCP_PROJECTS=/opt/geo-mcp/config/projects.yaml
+
+# Daily crawlability check
+30 6 * * *  geo-mcp run page-audit -p local-construction -q >> /var/log/geo-mcp.log 2>&1
+# Mon/Thu visibility check (cheaper than a full run)
+0 7 * * 1,4 geo-mcp run ai-visibility -p local-construction -q >> /var/log/geo-mcp.log 2>&1
+# Monthly sentiment, both grounded and model-memory
+0 8 1 * *   geo-mcp run sentiment -p local-construction --mode both -q >> /var/log/geo-mcp.log 2>&1
+# Weekly full report, exported, non-zero exit on alerts
+0 7 * * 1   geo-mcp run full-analysis -p local-construction -q --out /srv/geo-reports --fail-on-alert >> /var/log/geo-mcp.log 2>&1
+
+# Docker variant (server running under compose):
+# 0 7 * * 1 cd /opt/geo-mcp && docker compose exec -T geo-mcp geo-mcp run full-analysis -p local-construction -q
+# Remote variant (REST hook):
+# 0 7 * * 1 curl -fsS -X POST https://geo-mcp.example.com/api/run/full-analysis -H "Authorization: Bearer $GEO_MCP_TOKEN" -H "Content-Type: application/json" -d '{"project":"local-construction"}'

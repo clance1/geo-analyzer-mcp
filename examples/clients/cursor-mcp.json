@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "geo": {
+      "command": "geo-mcp",
+      "args": ["serve"]
+    },
+    "geo-remote": {
+      "url": "https://geo-mcp.example.com/mcp",
+      "headers": { "Authorization": "Bearer ${env:GEO_MCP_TOKEN}" }
+    }
+  }
+}

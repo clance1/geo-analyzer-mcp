@@ -1,0 +1,9 @@
+[Unit]
+Description=GEO Analyzer weekly full analysis
+
+[Service]
+Type=oneshot
+User=geo
+WorkingDirectory=/opt/geo-mcp
+EnvironmentFile=/opt/geo-mcp/.env
+ExecStart=/opt/geo-mcp/.venv/bin/geo-mcp run full-analysis -p local-construction -q --out /srv/geo-reports

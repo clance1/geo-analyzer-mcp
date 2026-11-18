@@ -1,0 +1,33 @@
+# Standalone:      docker compose up -d --build
+# Alongside the existing geo-web-app stack: copy this service into that compose file so the
+# existing cloudflared container can reach it at http://geo-mcp:8765 (see README → Self-hosting).
+services:
+  geo-mcp:
+    build: .
+    image: geo-analyzer-mcp:latest
+    container_name: geo-mcp
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      GEO_MCP_HOST: 0.0.0.0
+    ports:
+      - "127.0.0.1:8765:8765"   # localhost only; expose publicly via Cloudflare Tunnel
+    volumes:
+      - ./data:/data
+      - ./config:/app/config:ro
+
+  # Optional in-stack scheduler (alternative to host cron). Runs the weekly full analysis.
+  # geo-scheduler:
+  #   image: geo-analyzer-mcp:latest
+  #   depends_on: [geo-mcp]
+  #   env_file: .env
+  #   volumes: [./data:/data, ./config:/app/config:ro]
+  #   entrypoint: ["/bin/sh", "-c"]
+  #   command: ["while true; do geo-mcp run full-analysis -p local-construction -q; sleep 604800; done"]
+
+  # Optional tunnel if you are not already running cloudflared:
+  # cloudflared:
+  #   image: cloudflare/cloudflared:latest
+  #   command: tunnel --no-autoupdate run
+  #   environment: [TUNNEL_TOKEN=${CLOUDFLARE_TUNNEL_TOKEN}]
+  #   restart: unless-stopped
